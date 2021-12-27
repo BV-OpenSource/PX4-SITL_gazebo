@@ -71,6 +71,7 @@ namespace gazebo
     /// Moment = C_M * q * S
     /// where q (dynamic pressure) = 0.5 * rho * v^2
     protected: double cma;
+    protected: double cma0;
 
     /// \brief angle of attack when airfoil stalls
     protected: double alphaStall;
@@ -138,6 +139,12 @@ namespace gazebo
 
     /// \brief SDF for this plugin;
     protected: sdf::ElementPtr sdf;
+
+    /// \brief Debug Prints Enable;
+    protected: bool debugPrint;
+
+    /// \brief Set velocity for debug purpose;
+    protected: ignition::math::Vector3d debugVel;
 
     private: void WindVelocityCallback(const boost::shared_ptr<const physics_msgs::msgs::Wind> &msg);
 

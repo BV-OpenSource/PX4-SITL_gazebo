@@ -51,15 +51,15 @@ pkg_search_module(GLIB REQUIRED glib-2.0)
 # Note: If using catkin, Python 2 is found since it points
 # to the Python libs installed with the ROS distro
 if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3 REQUIRED)
+    find_package(PythonInterp 3 REQUIRED)
 else()
-	find_package(roscpp REQUIRED)
-	message(STATUS "${roscpp_version}")
-	if(${roscpp_VERSION}  VERSION_LESS "1.15.0")
-		find_package(PythonInterp REQUIRED)
-	else()
-		find_package(PythonInterp 3 REQUIRED)
-	endif()
+    find_package(roscpp REQUIRED)
+    message(STATUS "${roscpp_version}")
+    if(${roscpp_VERSION}  VERSION_LESS "1.15.0")
+        find_package(PythonInterp REQUIRED)
+    else()
+        find_package(PythonInterp 3 REQUIRED)
+    endif()
 endif()
 find_package(OpenCV REQUIRED)
 find_package(TinyXML REQUIRED)
@@ -188,7 +188,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}/eigen3	# Workaround for Eigen3
   ${GAZEBO_INCLUDE_DIRS}
   ${GAZEBO_MSG_INCLUDE_DIRS}
-  ${MAVLINK_INCLUDE_DIRS}
+  ${MAVLINK_INCLUDE_DIRS}/mavlink/v2.0
   ${OGRE_INCLUDE_DIRS}
   ${OGRE_INCLUDE_DIRS}/Paging		# Workaround for "fatal error: OgrePagedWorldSection.h: No such file or directory"
   ${OpenCV_INCLUDE_DIRS}
@@ -263,41 +263,41 @@ endif()
 function(glob_generate target file_glob)
   file(READ .gitignore gitignore_content)
   file(GLOB_RECURSE glob_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${file_glob})
-	set(gen_files)
-	foreach(glob_file ${glob_files})
-		string(REGEX REPLACE "\\.[^.]*$" "" file_name ${glob_file})
-		string(REGEX MATCH "[^.]*$" file_ext ${glob_file})
-		get_filename_component(file_dir ${glob_file} DIRECTORY)
-		set(in_file ${CMAKE_CURRENT_SOURCE_DIR}/${glob_file})
-		file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${file_dir})
-		set(out_file ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
-		string(REGEX REPLACE ".sdf" ".sdf" out_file ${out_file})
-		if (${file_ext} STREQUAL "jinja")
-			if(GENERATE_ROS_MODELS)
-				add_custom_command(OUTPUT ${out_file}
-        	                	COMMAND
-                	                        ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file} ${CMAKE_CURRENT_SOURCE_DIR} --generate_ros_models true
-                        	        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file}
-                                	VERBATIM
-	                                )
-			else()
-				add_custom_command(OUTPUT ${out_file}
-	                                COMMAND
-        	                                ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file} ${CMAKE_CURRENT_SOURCE_DIR}
-                	                DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file}
-                        	        VERBATIM
-                                	)
-			endif()
-			list(APPEND gen_files_${target} ${out_file})
-			string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/" "" gitignore_str ${in_file})
-			string(REGEX REPLACE ".jinja" "" gitignore_str ${gitignore_str})
-			string(FIND ${gitignore_content} ${gitignore_str} gitignore_substr)
-			if(${gitignore_substr} EQUAL -1)
-				file(APPEND .gitignore ${gitignore_str} "\n")
-			endif()
-		endif()
-	endforeach()
-	add_custom_target(${target} ALL DEPENDS ${gen_files_${target}})
+    set(gen_files)
+    foreach(glob_file ${glob_files})
+        string(REGEX REPLACE "\\.[^.]*$" "" file_name ${glob_file})
+        string(REGEX MATCH "[^.]*$" file_ext ${glob_file})
+        get_filename_component(file_dir ${glob_file} DIRECTORY)
+        set(in_file ${CMAKE_CURRENT_SOURCE_DIR}/${glob_file})
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${file_dir})
+        set(out_file ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
+        string(REGEX REPLACE ".sdf" ".sdf" out_file ${out_file})
+        if (${file_ext} STREQUAL "jinja")
+            if(GENERATE_ROS_MODELS)
+                add_custom_command(OUTPUT ${out_file}
+                                COMMAND
+                                            ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file} ${CMAKE_CURRENT_SOURCE_DIR} --generate_ros_models true
+                                    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file}
+                                    VERBATIM
+                                    )
+            else()
+                add_custom_command(OUTPUT ${out_file}
+                                    COMMAND
+                                            ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file} ${CMAKE_CURRENT_SOURCE_DIR}
+                                    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/jinja_gen.py ${in_file}
+                                    VERBATIM
+                                    )
+            endif()
+            list(APPEND gen_files_${target} ${out_file})
+            string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/" "" gitignore_str ${in_file})
+            string(REGEX REPLACE ".jinja" "" gitignore_str ${gitignore_str})
+            string(FIND ${gitignore_content} ${gitignore_str} gitignore_substr)
+            if(${gitignore_substr} EQUAL -1)
+                file(APPEND .gitignore ${gitignore_str} "\n")
+            endif()
+        endif()
+    endforeach()
+    add_custom_target(${target} ALL DEPENDS ${gen_files_${target}})
 endfunction()
 
 glob_generate(models_gen ${CMAKE_CURRENT_SOURCE_DIR}/models/*.jinja)
