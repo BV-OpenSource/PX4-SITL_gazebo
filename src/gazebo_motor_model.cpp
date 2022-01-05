@@ -24,144 +24,151 @@
 
 namespace gazebo {
 
-GazeboMotorModel::~GazeboMotorModel() {
-  updateConnection_->~Connection();
-  use_pid_ = false;
-}
+    GazeboMotorModel::~GazeboMotorModel() {
+        updateConnection_->~Connection();
+        use_pid_ = false;
+    }
 
-void GazeboMotorModel::InitializeParams() {}
+    void GazeboMotorModel::InitializeParams() {}
 
-void GazeboMotorModel::Publish() {
-  turning_velocity_msg_.set_data(joint_->GetVelocity(0));
-  // FIXME: Commented out to prevent warnings about queue limit reached.
-  // motor_velocity_pub_->Publish(turning_velocity_msg_);
-}
+    void GazeboMotorModel::Publish() {
+        turning_velocity_msg_.set_data(joint_->GetVelocity(0));
+        // FIXME: Commented out to prevent warnings about queue limit reached.
+        // motor_velocity_pub_->Publish(turning_velocity_msg_);
+    }
 
-void GazeboMotorModel::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
-  model_ = _model;
+    void GazeboMotorModel::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
+        model_ = _model;
+        sdf_ = _sdf;
 
-  namespace_.clear();
+        namespace_.clear();
 
-  if (_sdf->HasElement("robotNamespace"))
-    namespace_ = _sdf->GetElement("robotNamespace")->Get<std::string>();
-  else
-    gzerr << "[gazebo_motor_model] Please specify a robotNamespace.\n";
-  node_handle_ = transport::NodePtr(new transport::Node());
-  node_handle_->Init(namespace_);
+        if (_sdf->HasElement("robotNamespace"))
+            namespace_ = _sdf->GetElement("robotNamespace")->Get<std::string>();
+        else
+            gzerr << "[gazebo_motor_model] Please specify a robotNamespace.\n";
+        node_handle_ = transport::NodePtr(new transport::Node());
+        node_handle_->Init(namespace_);
 
-  if (_sdf->HasElement("jointName"))
-    joint_name_ = _sdf->GetElement("jointName")->Get<std::string>();
-  else
-    gzerr << "[gazebo_motor_model] Please specify a jointName, where the rotor is attached.\n";
-  // Get the pointer to the joint.
-  joint_ = model_->GetJoint(joint_name_);
-  if (joint_ == NULL)
-    gzthrow("[gazebo_motor_model] Couldn't find specified joint \"" << joint_name_ << "\".");
+        if (_sdf->HasElement("jointName"))
+            joint_name_ = _sdf->GetElement("jointName")->Get<std::string>();
+        else
+            gzerr << "[gazebo_motor_model] Please specify a jointName, where the rotor is attached.\n";
+        // Get the pointer to the joint.
+        joint_ = model_->GetJoint(joint_name_);
+        if (joint_ == NULL)
+            gzthrow("[gazebo_motor_model] Couldn't find specified joint \"" << joint_name_ << "\".");
 
-  // setup joint control pid to control joint
-  if (_sdf->HasElement("joint_control_pid"))
-  {
-    sdf::ElementPtr pid = _sdf->GetElement("joint_control_pid");
-    double p = 0.1;
-    if (pid->HasElement("p"))
-      p = pid->Get<double>("p");
-    double i = 0;
-    if (pid->HasElement("i"))
-      i = pid->Get<double>("i");
-    double d = 0;
-    if (pid->HasElement("d"))
-      d = pid->Get<double>("d");
-    double iMax = 0;
-    if (pid->HasElement("iMax"))
-      iMax = pid->Get<double>("iMax");
-    double iMin = 0;
-    if (pid->HasElement("iMin"))
-      iMin = pid->Get<double>("iMin");
-    double cmdMax = 3;
-    if (pid->HasElement("cmdMax"))
-      cmdMax = pid->Get<double>("cmdMax");
-    double cmdMin = -3;
-    if (pid->HasElement("cmdMin"))
-      cmdMin = pid->Get<double>("cmdMin");
-    pid_.Init(p, i, d, iMax, iMin, cmdMax, cmdMin);
-    use_pid_ = true;
-  }
-  else
-  {
-    use_pid_ = false;
-  }
+        // setup joint control pid to control joint
+        if (_sdf->HasElement("joint_control_pid"))
+        {
+            sdf::ElementPtr pid = _sdf->GetElement("joint_control_pid");
+            double p = 0.1;
+            if (pid->HasElement("p"))
+                p = pid->Get<double>("p");
+            double i = 0;
+            if (pid->HasElement("i"))
+                i = pid->Get<double>("i");
+            double d = 0;
+            if (pid->HasElement("d"))
+                d = pid->Get<double>("d");
+            double iMax = 0;
+            if (pid->HasElement("iMax"))
+                iMax = pid->Get<double>("iMax");
+            double iMin = 0;
+            if (pid->HasElement("iMin"))
+                iMin = pid->Get<double>("iMin");
+            double cmdMax = 3;
+            if (pid->HasElement("cmdMax"))
+                cmdMax = pid->Get<double>("cmdMax");
+            double cmdMin = -3;
+            if (pid->HasElement("cmdMin"))
+                cmdMin = pid->Get<double>("cmdMin");
+            pid_.Init(p, i, d, iMax, iMin, cmdMax, cmdMin);
+            use_pid_ = true;
+        }
+        else
+        {
+            use_pid_ = false;
+        }
 
-  if (_sdf->HasElement("linkName"))
-    link_name_ = _sdf->GetElement("linkName")->Get<std::string>();
-  else
-    gzerr << "[gazebo_motor_model] Please specify a linkName of the rotor.\n";
-  link_ = model_->GetLink(link_name_);
-  if (link_ == NULL)
-    gzthrow("[gazebo_motor_model] Couldn't find specified link \"" << link_name_ << "\".");
+        if (_sdf->HasElement("linkName"))
+            link_name_ = _sdf->GetElement("linkName")->Get<std::string>();
+        else
+            gzerr << "[gazebo_motor_model] Please specify a linkName of the rotor.\n";
+        link_ = model_->GetLink(link_name_);
+        if (link_ == NULL)
+            gzthrow("[gazebo_motor_model] Couldn't find specified link \"" << link_name_ << "\".");
 
 
-  if (_sdf->HasElement("motorNumber"))
-    motor_number_ = _sdf->GetElement("motorNumber")->Get<int>();
-  else
-    gzerr << "[gazebo_motor_model] Please specify a motorNumber.\n";
+        if (_sdf->HasElement("motorNumber"))
+            motor_number_ = _sdf->GetElement("motorNumber")->Get<int>();
+        else
+            gzerr << "[gazebo_motor_model] Please specify a motorNumber.\n";
 
-  if (_sdf->HasElement("turningDirection")) {
-    std::string turning_direction = _sdf->GetElement("turningDirection")->Get<std::string>();
-    if (turning_direction == "cw")
-      turning_direction_ = turning_direction::CW;
-    else if (turning_direction == "ccw")
-      turning_direction_ = turning_direction::CCW;
-    else
-      gzerr << "[gazebo_motor_model] Please only use 'cw' or 'ccw' as turningDirection.\n";
-  }
-  else
-    gzerr << "[gazebo_motor_model] Please specify a turning direction ('cw' or 'ccw').\n";
+        if (_sdf->HasElement("turningDirection")) {
+            std::string turning_direction = _sdf->GetElement("turningDirection")->Get<std::string>();
+            if (turning_direction == "cw")
+                turning_direction_ = turning_direction::CW;
+            else if (turning_direction == "ccw")
+                turning_direction_ = turning_direction::CCW;
+            else
+                gzerr << "[gazebo_motor_model] Please only use 'cw' or 'ccw' as turningDirection.\n";
+        }
+        else
+            gzerr << "[gazebo_motor_model] Please specify a turning direction ('cw' or 'ccw').\n";
 
-  if(_sdf->HasElement("reversible")) {
-    reversible_ = _sdf->GetElement("reversible")->Get<bool>();
-  }
+        if(_sdf->HasElement("reversible")) {
+            reversible_ = _sdf->GetElement("reversible")->Get<bool>();
+        }
 
-  getSdfParam<std::string>(_sdf, "commandSubTopic", command_sub_topic_, command_sub_topic_);
-  getSdfParam<std::string>(_sdf, "motorSpeedPubTopic", motor_speed_pub_topic_,
-                           motor_speed_pub_topic_);
+        if (_sdf->HasElement("topic_name")) {
+            const auto lift_force_topic = _sdf->Get<std::string>("topic_name");
+            lift_force_pub_ = node_handle_->Advertise<physics_msgs::msgs::Force>("~/" + lift_force_topic);
+            gzdbg << "Publishing to ~/" << lift_force_topic << std::endl;
+        }
 
-  getSdfParam<double>(_sdf, "rotorDragCoefficient", rotor_drag_coefficient_, rotor_drag_coefficient_);
-  getSdfParam<double>(_sdf, "rollingMomentCoefficient", rolling_moment_coefficient_,
-                      rolling_moment_coefficient_);
-  getSdfParam<double>(_sdf, "maxRotVelocity", max_rot_velocity_, max_rot_velocity_);
-  getSdfParam<double>(_sdf, "motorConstant", motor_constant_, motor_constant_);
-  getSdfParam<double>(_sdf, "momentConstant", moment_constant_, moment_constant_);
+        getSdfParam<std::string>(_sdf, "commandSubTopic", command_sub_topic_, command_sub_topic_);
+        getSdfParam<std::string>(_sdf, "motorSpeedPubTopic", motor_speed_pub_topic_,
+                                 motor_speed_pub_topic_);
 
-  getSdfParam<double>(_sdf, "timeConstantUp", time_constant_up_, time_constant_up_);
-  getSdfParam<double>(_sdf, "timeConstantDown", time_constant_down_, time_constant_down_);
-  getSdfParam<double>(_sdf, "rotorVelocitySlowdownSim", rotor_velocity_slowdown_sim_, 10);
+        getSdfParam<double>(_sdf, "rotorDragCoefficient", rotor_drag_coefficient_, rotor_drag_coefficient_);
+        getSdfParam<double>(_sdf, "rollingMomentCoefficient", rolling_moment_coefficient_,
+                            rolling_moment_coefficient_);
+        getSdfParam<double>(_sdf, "maxRotVelocity", max_rot_velocity_, max_rot_velocity_);
+        getSdfParam<double>(_sdf, "motorConstant", motor_constant_, motor_constant_);
+        getSdfParam<double>(_sdf, "momentConstant", moment_constant_, moment_constant_);
 
-  /*
+        getSdfParam<double>(_sdf, "timeConstantUp", time_constant_up_, time_constant_up_);
+        getSdfParam<double>(_sdf, "timeConstantDown", time_constant_down_, time_constant_down_);
+        getSdfParam<double>(_sdf, "rotorVelocitySlowdownSim", rotor_velocity_slowdown_sim_, 10);
+
+        /*
   std::cout << "Subscribing to: " << motor_test_sub_topic_ << std::endl;
   motor_sub_ = node_handle_->Subscribe<mav_msgs::msgs::MotorSpeed>("~/" + model_->GetName() + motor_test_sub_topic_, &GazeboMotorModel::testProto, this);
   */
 
-  // Set the maximumForce on the joint. This is deprecated from V5 on, and the joint won't move.
+        // Set the maximumForce on the joint. This is deprecated from V5 on, and the joint won't move.
 #if GAZEBO_MAJOR_VERSION < 5
-  joint_->SetMaxForce(0, max_force_);
+        joint_->SetMaxForce(0, max_force_);
 #endif
-  // Listen to the update event. This event is broadcast every
-  // simulation iteration.
-  updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&GazeboMotorModel::OnUpdate, this, _1));
+        // Listen to the update event. This event is broadcast every
+        // simulation iteration.
+        updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&GazeboMotorModel::OnUpdate, this, _1));
 
-  command_sub_ = node_handle_->Subscribe<mav_msgs::msgs::CommandMotorSpeed>("~/" + model_->GetName() + command_sub_topic_, &GazeboMotorModel::VelocityCallback, this);
-  //std::cout << "[gazebo_motor_model]: Subscribe to gz topic: "<< motor_failure_sub_topic_ << std::endl;
-  motor_failure_sub_ = node_handle_->Subscribe<msgs::Int>(motor_failure_sub_topic_, &GazeboMotorModel::MotorFailureCallback, this);
-  // FIXME: Commented out to prevent warnings about queue limit reached.
-  //motor_velocity_pub_ = node_handle_->Advertise<std_msgs::msgs::Float>("~/" + model_->GetName() + motor_speed_pub_topic_, 1);
-  wind_sub_ = node_handle_->Subscribe("~/" + wind_sub_topic_, &GazeboMotorModel::WindVelocityCallback, this);
+        command_sub_ = node_handle_->Subscribe<mav_msgs::msgs::CommandMotorSpeed>("~/" + model_->GetName() + command_sub_topic_, &GazeboMotorModel::VelocityCallback, this);
+        //std::cout << "[gazebo_motor_model]: Subscribe to gz topic: "<< motor_failure_sub_topic_ << std::endl;
+        motor_failure_sub_ = node_handle_->Subscribe<msgs::Int>(motor_failure_sub_topic_, &GazeboMotorModel::MotorFailureCallback, this);
+        // FIXME: Commented out to prevent warnings about queue limit reached.
+        //motor_velocity_pub_ = node_handle_->Advertise<std_msgs::msgs::Float>("~/" + model_->GetName() + motor_speed_pub_topic_, 1);
+        wind_sub_ = node_handle_->Subscribe("~/" + wind_sub_topic_, &GazeboMotorModel::WindVelocityCallback, this);
 
-  // Create the first order filter.
-  rotor_velocity_filter_.reset(new FirstOrderFilter<double>(time_constant_up_, time_constant_down_, ref_motor_rot_vel_));
-}
+        // Create the first order filter.
+        rotor_velocity_filter_.reset(new FirstOrderFilter<double>(time_constant_up_, time_constant_down_, ref_motor_rot_vel_));
+    }
 
-// Protobuf test
-/*
+    // Protobuf test
+    /*
 void GazeboMotorModel::testProto(MotorSpeedPtr &msg) {
   std::cout << "Received message" << std::endl;
   std::cout << msg->motor_speed_size()<< std::endl;
@@ -172,140 +179,170 @@ void GazeboMotorModel::testProto(MotorSpeedPtr &msg) {
 }
 */
 
-// This gets called by the world update start event.
-void GazeboMotorModel::OnUpdate(const common::UpdateInfo& _info) {
-  sampling_time_ = _info.simTime.Double() - prev_sim_time_;
-  prev_sim_time_ = _info.simTime.Double();
-  UpdateForcesAndMoments();
-  UpdateMotorFail();
-  Publish();
-}
+    // This gets called by the world update start event.
+    void GazeboMotorModel::OnUpdate(const common::UpdateInfo& _info) {
+        sampling_time_ = _info.simTime.Double() - prev_sim_time_;
+        prev_sim_time_ = _info.simTime.Double();
+        this->dt = _info.simTime.Double() - prev_pub_time_;
+        UpdateForcesAndMoments();
+        UpdateMotorFail();
+        Publish();
+    }
 
-void GazeboMotorModel::VelocityCallback(CommandMotorSpeedPtr &rot_velocities) {
-  if(rot_velocities->motor_speed_size() < motor_number_) {
-    std::cout  << "You tried to access index " << motor_number_
-      << " of the MotorSpeed message array which is of size " << rot_velocities->motor_speed_size() << "." << std::endl;
-  } else ref_motor_rot_vel_ = std::min(static_cast<double>(rot_velocities->motor_speed(motor_number_)), static_cast<double>(max_rot_velocity_));
-}
+    void GazeboMotorModel::VelocityCallback(CommandMotorSpeedPtr &rot_velocities) {
+        if(rot_velocities->motor_speed_size() < motor_number_) {
+            std::cout  << "You tried to access index " << motor_number_
+                       << " of the MotorSpeed message array which is of size " << rot_velocities->motor_speed_size() << "." << std::endl;
+        } else{
+            ref_motor_rot_vel_ = std::min(static_cast<double>(rot_velocities->motor_speed(motor_number_)), static_cast<double>(max_rot_velocity_));
+        }
+    }
 
-void GazeboMotorModel::MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg) {
-  motor_Failure_Number_ = fail_msg->data();
-}
+    void GazeboMotorModel::MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg) {
+        motor_Failure_Number_ = fail_msg->data();
+    }
 
-void GazeboMotorModel::UpdateForcesAndMoments() {
-  motor_rot_vel_ = joint_->GetVelocity(0);
-  if (motor_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
-    gzerr << "Aliasing on motor [" << motor_number_ << "] might occur. Consider making smaller simulation time steps or raising the rotor_velocity_slowdown_sim_ ["
-          << rotor_velocity_slowdown_sim_ << "] param.\n";
-  }
-  double real_motor_velocity = motor_rot_vel_ * rotor_velocity_slowdown_sim_;
-  double force = real_motor_velocity * std::abs(real_motor_velocity) * motor_constant_;
-  if(!reversible_) {
-    // Not allowed to have negative thrust.
-    force = std::abs(force);
-  }
+    void GazeboMotorModel::UpdateForcesAndMoments() {
+        motor_rot_vel_ = joint_->GetVelocity(0);
+        if (motor_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
+            gzerr << "Aliasing on motor [" << motor_number_ << "] might occur. Consider making smaller simulation time steps or raising the rotor_velocity_slowdown_sim_ ["
+                  << rotor_velocity_slowdown_sim_ << "] param.\n";
+            gzerr << "Motor vel: " << motor_rot_vel_ << " Sampling_time: " << sampling_time_ << std::endl;
+        }
+        double real_motor_velocity = motor_rot_vel_ * rotor_velocity_slowdown_sim_;
+        double force = real_motor_velocity * std::abs(real_motor_velocity) * motor_constant_;
+        if(!reversible_) {
+            // Not allowed to have negative thrust.
+            force = std::abs(force);
+        }
 
-  // scale down force linearly with forward speed
-  // XXX this has to be modelled better
-  //
+        // scale down force linearly with forward speed
+        // XXX this has to be modelled better
+        //
 #if GAZEBO_MAJOR_VERSION >= 9
-  ignition::math::Vector3d body_velocity = link_->WorldLinearVel();
-  ignition::math::Vector3d joint_axis = joint_->GlobalAxis(0);
+        ignition::math::Vector3d body_velocity = link_->WorldLinearVel();
+        ignition::math::Vector3d joint_axis = joint_->GlobalAxis(0);
 #else
-  ignition::math::Vector3d body_velocity = ignitionFromGazeboMath(link_->GetWorldLinearVel());
-  ignition::math::Vector3d joint_axis = ignitionFromGazeboMath(joint_->GetGlobalAxis(0));
+        ignition::math::Vector3d body_velocity = ignitionFromGazeboMath(link_->GetWorldLinearVel());
+        ignition::math::Vector3d joint_axis = ignitionFromGazeboMath(joint_->GetGlobalAxis(0));
 #endif
 
-  ignition::math::Vector3d relative_wind_velocity = body_velocity - wind_vel_;
-  ignition::math::Vector3d velocity_parallel_to_rotor_axis = (relative_wind_velocity.Dot(joint_axis)) * joint_axis;
-  double vel = velocity_parallel_to_rotor_axis.Length();
-  double scalar = 1 - vel / 25.0; // at 25 m/s the rotor will not produce any force anymore
-  scalar = ignition::math::clamp(scalar, 0.0, 1.0);
-  // Apply a force to the link.
-  link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force * scalar));
+        ignition::math::Vector3d relative_wind_velocity = body_velocity - wind_vel_;
+        ignition::math::Vector3d velocity_parallel_to_rotor_axis = (relative_wind_velocity.Dot(joint_axis)) * joint_axis;
+        double vel = velocity_parallel_to_rotor_axis.Length();
+        double scalar = 1 - vel / 25.0; // at 25 m/s the rotor will not produce any force anymore
+        scalar = ignition::math::clamp(scalar, 0.0, 1.0);
+        // Apply a force to the link.
+        link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force * scalar));
 
-//  gzdbg << "Joint: " << joint_->GetName() << " Force: " << force * scalar/9.8066 << " kg\n";
+        auto relative_center = link_->WorldCoGPose().Pos();
 
-  // Forces from Philppe Martin's and Erwan Salaün's
-  // 2010 IEEE Conference on Robotics and Automation paper
-  // The True Role of Accelerometer Feedback in Quadrotor Control
-  // - \omega * \lambda_1 * V_A^{\perp}
-  ignition::math::Vector3d velocity_perpendicular_to_rotor_axis = relative_wind_velocity - (relative_wind_velocity.Dot(joint_axis)) * joint_axis;
-  ignition::math::Vector3d air_drag = -std::abs(real_motor_velocity) * rotor_drag_coefficient_ * velocity_perpendicular_to_rotor_axis;
-  // Apply air_drag to link.
-  link_->AddForce(air_drag);
-  // Moments
-  // Getting the parent link, such that the resulting torques can be applied to it.
-  physics::Link_V parent_links = link_->GetParentJointsLinks();
-  // The tansformation from the parent_link to the link_.
+        // Publish force and center of pressure for potential visual plugin.
+        // - dt is used to control the rate at which the force is published
+        // - it only gets published if 'topic_name' is defined in the sdf
+        if (this->dt > 1.0 / 10 && sdf_->HasElement("topic_name")) {
+            msgs::Vector3d* force_center_msg = new msgs::Vector3d;
+            force_center_msg->set_x(0.0);
+            force_center_msg->set_y(0.0);
+            force_center_msg->set_z(0.0);
+
+            msgs::Vector3d* force_vector_msg = new msgs::Vector3d;
+            force_vector_msg->set_x(0.0);
+            force_vector_msg->set_y(0.0);
+            force_vector_msg->set_z(force * scalar);
+
+            physics_msgs::msgs::Force force_msg;
+            force_msg.set_allocated_center(force_center_msg);
+            force_msg.set_allocated_force(force_vector_msg);
+
+            lift_force_pub_->Publish(force_msg);
+            this->prev_pub_time_ = prev_sim_time_;
+        }
+
+        //  gzdbg << "Joint: " << joint_->GetName() << " Force: " << force * scalar/9.8066 << " kg\n";
+
+        // Forces from Philppe Martin's and Erwan Salaün's
+        // 2010 IEEE Conference on Robotics and Automation paper
+        // The True Role of Accelerometer Feedback in Quadrotor Control
+        // - \omega * \lambda_1 * V_A^{\perp}
+        ignition::math::Vector3d velocity_perpendicular_to_rotor_axis = relative_wind_velocity - (relative_wind_velocity.Dot(joint_axis)) * joint_axis;
+        ignition::math::Vector3d air_drag = -std::abs(real_motor_velocity) * rotor_drag_coefficient_ * velocity_perpendicular_to_rotor_axis;
+        // Apply air_drag to link.
+        link_->AddForce(air_drag);
+        // Moments
+        // Getting the parent link, such that the resulting torques can be applied to it.
+        physics::Link_V parent_links = link_->GetParentJointsLinks();
+        // The tansformation from the parent_link to the link_.
 #if GAZEBO_MAJOR_VERSION >= 9
-  ignition::math::Pose3d pose_difference = link_->WorldCoGPose() - parent_links.at(0)->WorldCoGPose();
+        ignition::math::Pose3d pose_difference = link_->WorldCoGPose() - parent_links.at(0)->WorldCoGPose();
 #else
-  ignition::math::Pose3d pose_difference = ignitionFromGazeboMath(link_->GetWorldCoGPose() - parent_links.at(0)->GetWorldCoGPose());
+        ignition::math::Pose3d pose_difference = ignitionFromGazeboMath(link_->GetWorldCoGPose() - parent_links.at(0)->GetWorldCoGPose());
 #endif
-  ignition::math::Vector3d drag_torque(0, 0, -turning_direction_ * force * moment_constant_);
-  // Transforming the drag torque into the parent frame to handle arbitrary rotor orientations.
-  ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(drag_torque);
-  parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
+        ignition::math::Vector3d drag_torque(0, 0, -turning_direction_ * force * moment_constant_);
+        // Transforming the drag torque into the parent frame to handle arbitrary rotor orientations.
+        ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(drag_torque);
+        parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
+//        gzdbg << "Motor " << motor_number_ << " dragTorque " << drag_torque << " DT Frame: " << drag_torque_parent_frame << " Force: " << force
+//              << " Vel: " << real_motor_velocity << "\nRel Pose: " << pose_difference<< std::endl;
 
-  ignition::math::Vector3d rolling_moment;
-  // - \omega * \mu_1 * V_A^{\perp}
-  rolling_moment = -std::abs(real_motor_velocity) * turning_direction_ * rolling_moment_coefficient_ * velocity_perpendicular_to_rotor_axis;
-  parent_links.at(0)->AddTorque(rolling_moment);
-  // Apply the filter on the motor's velocity.
-  double ref_motor_rot_vel;
-  ref_motor_rot_vel = rotor_velocity_filter_->updateFilter(ref_motor_rot_vel_, sampling_time_);
+        ignition::math::Vector3d rolling_moment;
+        // - \omega * \mu_1 * V_A^{\perp}
+        rolling_moment = -std::abs(real_motor_velocity) * turning_direction_ * rolling_moment_coefficient_ * velocity_perpendicular_to_rotor_axis;
+        parent_links.at(0)->AddTorque(rolling_moment);
+        // Apply the filter on the motor's velocity.
+        double ref_motor_rot_vel;
+        ref_motor_rot_vel = rotor_velocity_filter_->updateFilter(ref_motor_rot_vel_, sampling_time_);
 
 #if 0 //FIXME: disable PID for now, it does not play nice with the PX4 CI system.
-  if (use_pid_)
-  {
-    double err = joint_->GetVelocity(0) - turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_;
-    double rotorForce = pid_.Update(err, sampling_time_);
-    joint_->SetForce(0, rotorForce);
-    // gzerr << "rotor " << joint_->GetName() << " : " << rotorForce << "\n";
-  }
-  else
-  {
+        if (use_pid_)
+        {
+            double err = joint_->GetVelocity(0) - turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_;
+            double rotorForce = pid_.Update(err, sampling_time_);
+            joint_->SetForce(0, rotorForce);
+            // gzerr << "rotor " << joint_->GetName() << " : " << rotorForce << "\n";
+        }
+        else
+        {
 #if GAZEBO_MAJOR_VERSION >= 7
-    // Not desirable to use SetVelocity for parts of a moving model
-    // impact on rest of the dynamic system is non-physical.
-    joint_->SetVelocity(0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
+            // Not desirable to use SetVelocity for parts of a moving model
+            // impact on rest of the dynamic system is non-physical.
+            joint_->SetVelocity(0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
 #elif GAZEBO_MAJOR_VERSION >= 6
-    // Not ideal as the approach could result in unrealistic impulses, and
-    // is only available in ODE
-    joint_->SetParam("fmax", 0, 2.0);
-    joint_->SetParam("vel", 0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
+            // Not ideal as the approach could result in unrealistic impulses, and
+            // is only available in ODE
+            joint_->SetParam("fmax", 0, 2.0);
+            joint_->SetParam("vel", 0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
 #endif
-  }
+        }
 #else
-  joint_->SetVelocity(0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
+        joint_->SetVelocity(0, turning_direction_ * ref_motor_rot_vel / rotor_velocity_slowdown_sim_);
 #endif /* if 0 */
-}
-
-void GazeboMotorModel::UpdateMotorFail() {
-  if (motor_number_ == motor_Failure_Number_ - 1){
-    // motor_constant_ = 0.0;
-    joint_->SetVelocity(0,0);
-    if (screen_msg_flag){
-      std::cout << "Motor number [" << motor_Failure_Number_ <<"] failed!  [Motor thrust = 0]" << std::endl;
-      tmp_motor_num = motor_Failure_Number_;
-
-      screen_msg_flag = 0;
     }
-  }else if (motor_Failure_Number_ == 0 && motor_number_ ==  tmp_motor_num - 1){
-     if (!screen_msg_flag){
-       //motor_constant_ = kDefaultMotorConstant;
-       std::cout << "Motor number [" << tmp_motor_num <<"] running! [Motor thrust = (default)]" << std::endl;
-       screen_msg_flag = 1;
-     }
-  }
-}
 
-void GazeboMotorModel::WindVelocityCallback(WindPtr& msg) {
-  wind_vel_ = ignition::math::Vector3d(msg->velocity().x(),
-            msg->velocity().y(),
-            msg->velocity().z());
-}
+    void GazeboMotorModel::UpdateMotorFail() {
+        if (motor_number_ == motor_Failure_Number_ - 1){
+            // motor_constant_ = 0.0;
+            joint_->SetVelocity(0,0);
+            if (screen_msg_flag){
+                std::cout << "Motor number [" << motor_Failure_Number_ <<"] failed!  [Motor thrust = 0]" << std::endl;
+                tmp_motor_num = motor_Failure_Number_;
 
-GZ_REGISTER_MODEL_PLUGIN(GazeboMotorModel);
+                screen_msg_flag = 0;
+            }
+        }else if (motor_Failure_Number_ == 0 && motor_number_ ==  tmp_motor_num - 1){
+            if (!screen_msg_flag){
+                //motor_constant_ = kDefaultMotorConstant;
+                std::cout << "Motor number [" << tmp_motor_num <<"] running! [Motor thrust = (default)]" << std::endl;
+                screen_msg_flag = 1;
+            }
+        }
+    }
+
+    void GazeboMotorModel::WindVelocityCallback(WindPtr& msg) {
+        wind_vel_ = ignition::math::Vector3d(msg->velocity().x(),
+                                             msg->velocity().y(),
+                                             msg->velocity().z());
+    }
+
+    GZ_REGISTER_MODEL_PLUGIN(GazeboMotorModel);
 }

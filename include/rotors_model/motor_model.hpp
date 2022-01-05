@@ -23,6 +23,9 @@
 #define ROTORS_MODEL_MOTOR_MODEL_H
 
 #include <Eigen/Eigen>
+#include "gazebo/physics/physics.hh"
+#include "gazebo/transport/TransportTypes.hh"
+#include "Force.pb.h"
 
 class MotorModel
 {
@@ -48,7 +51,11 @@ class MotorModel
     double ref_motor_rot_vel_;
     double prev_ref_motor_rot_vel_;
     double prev_sim_time_;
+    double prev_pub_time_;
     double sampling_time_;
+    double dt;
+    gazebo::transport::PublisherPtr lift_force_pub_;
+    sdf::ElementPtr sdf_;
 
 
     virtual void UpdateForcesAndMoments() = 0;
